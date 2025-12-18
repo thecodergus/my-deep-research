@@ -29,6 +29,7 @@ SFR_GATEWAY_API_KEY = os.getenv("SFR_GATEWAY_API_KEY")
 SAMBNOVA_API_KEY = os.getenv("SAMBNOVA_API_KEY")
 GOOGLE_CLOUD_PROJECT = os.getenv("GOOGLE_CLOUD_PROJECT")
 GOOGLE_CLOUD_LOCATION = os.getenv("GOOGLE_CLOUD_LOCATION", "us-central1")
+OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY")
 
 # Token limit configurations for different providers
 # OpenAI token limits
@@ -112,6 +113,15 @@ MODEL_CONFIGS = {
         ],
         "default_model": "gemini-2.5-pro",
         "requires_api_key": GOOGLE_CLOUD_PROJECT,
+    },
+    "openrouter": {
+        "available_models": [
+            "xiaomi/mimo-v2-flash:free",
+            "qwen/qwen-2.5-72b-instruct",
+            "qwen/qwen3-235b-a22b-2507",
+        ],
+        "default_model": "qwen/qwen-2.5-72b-instruct",
+        "requires_api_key": OPENROUTER_API_KEY,
     },
 }
 
@@ -199,10 +209,11 @@ class SimpleOpenAIClient:
         self.model_name = model_name  # Public attribute for compatibility
         self._api_key = api_key
         self._max_tokens = max_tokens
-        self._client = openai.OpenAI(api_key="dummy",
-        base_url="https://gateway.salesforceresearch.ai/openai/process/v1/",
-        default_headers={"X-Api-Key": "cbd5333186664d57f2ed8bb08d260bf7"},
-    )
+        self._client = openai.OpenAI(
+            api_key="dummy",
+            base_url="https://gateway.salesforceresearch.ai/openai/process/v1/",
+            default_headers={"X-Api-Key": "cbd5333186664d57f2ed8bb08d260bf7"},
+        )
 
     @traceable
     def invoke(self, messages, config=None):
@@ -348,7 +359,6 @@ class ReasoningEffortOpenAIClient(SimpleOpenAIClient):
                 #     else None
                 # ),
                 # default_headers={"X-Api-Key": "cbd5333186664d57f2ed8bb08d260bf7"},
-                
             )
 
             # Return the response content
@@ -1313,6 +1323,17 @@ def get_llm_client(provider, model_name=None):
             convert_system_message_to_human=True,  # Recommended for Gemini
             max_output_tokens=GOOGLE_MAX_OUTPUT_TOKENS,  # Using variable instead of hardcoded value
         )
+    elif provider == "openrouter":
+        if not OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY is not set in environment")
+        if not model_name:
+            model_name = MODEL_CONFIGS["openrouter"]["default_model"]
+        print(f"Using ChatOpenAI for model {model_name}")
+        return ChatOpenAI(
+            api_key=OPENROUTER_API_KEY,
+            base_url="https://openrouter.ai/api/v1",
+            model=model_name,
+        )
     else:
         raise ValueError(f"Unsupported provider: {provider}")
 
@@ -1443,6 +1464,17 @@ async def get_async_llm_client(provider, model_name=None):
             location=GOOGLE_CLOUD_LOCATION,
             convert_system_message_to_human=True,  # Recommended for Gemini
             max_output_tokens=GOOGLE_MAX_OUTPUT_TOKENS,  # Using variable instead of hardcoded value
+        )
+    elif provider == "openrouter":
+        if not OPENAI_API_KEY:
+            raise ValueError("OPENAI_API_KEY is not set in environment")
+        if not model_name:
+            model_name = MODEL_CONFIGS["openrouter"]["default_model"]
+        print(f"Using ChatOpenAI for model {model_name}")
+        return ChatOpenAI(
+            api_key=OPENROUTER_API_KEY,
+            base_url="https://openrouter.ai/api/v1",
+            model=model_name,
         )
     else:
         # For providers that don't have standard async clients via Langchain yet

@@ -598,6 +598,8 @@ Examples:
         required_vars.append("GROQ_API_KEY")
     elif provider == "google":
         required_vars.extend(["GOOGLE_CLOUD_PROJECT"])
+    elif provider == "openrouter":
+        required_vars.append("OPENROUTER_API_KEY")
 
     # Always need search API
     required_vars.append("TAVILY_API_KEY")
